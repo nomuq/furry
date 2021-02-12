@@ -1,11 +1,7 @@
 import "reflect-metadata";
 
-import {
-  Server,
-  createServer,
-  IncomingMessage,
-  ServerResponse,
-} from "http";
+import { Server, createServer, IncomingMessage, ServerResponse } from "http";
+import { match, pathToRegexp } from "./router-regex";
 
 export const MetadataKeys = {
   controller: "resty:controller",
@@ -127,6 +123,11 @@ class HelloController {
   health() {
     return "ok";
   }
+
+  @Get("/posts/:postID")
+  postsbyid() {
+    return "ok";
+  }
 }
 
 const metadata: ControllerMetadata = Reflect.getMetadata(
@@ -137,46 +138,26 @@ const metadata: ControllerMetadata = Reflect.getMetadata(
 const arrHttpMethodMetada: HTTPMethodMetadata[] =
   Reflect.getMetadata(MetadataKeys.httpMethod, HelloController) ?? [];
 
-// console.log(metadata, arrHttpMethodMetada);
-
-const routes: Record<
-  string,
-  {
-    path: string;
-    method: string;
-    controller: any;
-    metadata: ControllerMetadata;
-  }
-> = {};
-const c = new HelloController();
-
-arrHttpMethodMetada.forEach((m) => {
-  if (!m.path.endsWith("/")) {
-    m.path = m.path + "/";
-  }
-  routes[m.method + "::" + metadata.path + m.path] = {
-    path: metadata.path + m.path,
-    method: m.method,
-    controller: HelloController,
-    metadata: metadata,
-  };
-});
-
-console.log(routes);
-
 function handler(req: IncomingMessage, res: ServerResponse) {
   // if strict mode is off or add traling slash
   if (!req.url?.endsWith("/")) {
     req.url = req.url + "/";
   }
 
-  console.log(req.method?.toLowerCase() + "::" + req.url);
-  var route = routes[req.method?.toLowerCase() + "::" + req.url];
-  if (route) {
-    console.log(route);
-  } else {
-    res.statusCode = 404;
-  }
+  arrHttpMethodMetada.forEach((m) => {
+    if (!m.path.endsWith("/")) {
+      m.path = m.path + "/";
+    }
+
+    var route = metadata.path + m.path;
+
+    const fn = match(route, { decode: decodeURIComponent });
+
+    if (req.url && fn(req.url)) {
+      console.log(fn(req.url));
+    }
+  });
+
   res.end();
 }
 
