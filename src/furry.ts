@@ -144,6 +144,21 @@ function handler(req: IncomingMessage, res: ServerResponse) {
     req.url = req.url + "/";
   }
 
+  console.log(req.headers["content-type"]);
+  if (req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+    req.on("end", () => {
+      // console.log(body);
+      res.end("ok");
+    });
+
+    
+    // console.log(body);
+  }
+
   arrHttpMethodMetada.forEach((m) => {
     if (!m.path.endsWith("/")) {
       m.path = m.path + "/";
@@ -154,7 +169,7 @@ function handler(req: IncomingMessage, res: ServerResponse) {
     const fn = match(route, { decode: decodeURIComponent });
 
     if (req.url && fn(req.url)) {
-      console.log(fn(req.url));
+      console.log('Found Route:', fn(req.url));
     }
   });
 
